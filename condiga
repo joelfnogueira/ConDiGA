@@ -24,8 +24,6 @@ __maintainer__ = "Vijini Mallawaarachchi"
 __email__ = "viji.mallawaarachchi@gmail.com"
 __status__ = "Development"
 
-# Sample command
-# -------------------------------------------------------------------
 
 # Setup arguments
 # ----------------------------------------------------------------------
@@ -43,7 +41,7 @@ __status__ = "Development"
     "--taxa",
     "-ta",
     required=True,
-    help="path to the taxanomic classification results file",
+    help="path to the taxonomic classification results file",
     type=click.Path(exists=True),
 )
 @click.option(
