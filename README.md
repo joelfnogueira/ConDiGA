@@ -21,7 +21,7 @@
 
 ### Option 1: Installing ConDiGA using conda (recommended)
 
-You can install ConDiGA from bioconda at [https://anaconda.org/bioconda/condiga](https://anaconda.org/bioconda/condiga). Make sure you have [`conda`](https://docs.conda.io/en/latest/) installed.
+You can install ConDiGA from Bioconda at [https://anaconda.org/bioconda/condiga](https://anaconda.org/bioconda/condiga). Make sure you have [`conda`](https://docs.conda.io/en/latest/) installed.
 
 ```bash
 # create conda environment and install condiga
@@ -59,7 +59,7 @@ Usage: condiga [OPTIONS]
 
 Options:
   -c, --contigs PATH              path to the contigs file  [required]
-  -ta, --taxa PATH                path to the taxanomic classification results
+  -ta, --taxa PATH                path to the taxonomic classification results
                                   file  [required]
   -g, --genes PATH                path to the genes file  [required]
   -cov, --coverages PATH          path to the contig coverages file
@@ -175,20 +175,20 @@ If you use ConDiGA in your work, please as
 > Wu, E., Mallawaarachchi, V., Zhao, J. et al. Contigs directed gene annotation (ConDiGA) for accurate protein sequence database construction in metaproteomics. Microbiome 12, 58 (2024). https://doi.org/10.1186/s40168-024-01775-3
 
 ```bibtex
-@article{Wu2024,
-author={Wu, Enhui and Mallawaarachchi, Vijini and Zhao, Jinzhi and Yang, Yi and Liu, Hebin and Wang, Xiaoqing and Shen, Chengpin and Lin, Yu and Qiao, Liang},
-title={Contigs directed gene annotation (ConDiGA) for accurate protein sequence database construction in metaproteomics},
-journal={Microbiome},
-year={2024},
-month={Mar},
-day={19},
-volume={12},
-number={1},
-pages={58},
-abstract={Microbiota are closely associated with human health and disease. Metaproteomics can provide a direct means to identify microbial proteins in microbiota for compositional and functional characterization. However, in-depth and accurate metaproteomics is still limited due to the extreme complexity and high diversity of microbiota samples. It is generally recommended to use metagenomic data from the same samples to construct the protein sequence database for metaproteomic data analysis. Although different metagenomics-based database construction strategies have been developed, an optimization of gene taxonomic annotation has not been reported, which, however, is extremely important for accurate metaproteomic analysis.},
-issn={2049-2618},
-doi={10.1186/s40168-024-01775-3},
-url={https://doi.org/10.1186/s40168-024-01775-3}
+  @article{Wu2024,
+  author={Wu, Enhui and Mallawaarachchi, Vijini and Zhao, Jinzhi and Yang, Yi and Liu, Hebin and Wang, Xiaoqing and Shen, Chengpin and Lin, Yu and Qiao, Liang},
+  title={Contigs directed gene annotation (ConDiGA) for accurate protein sequence database construction in metaproteomics},
+  journal={Microbiome},
+  year={2024},
+  month={Mar},
+  day={19},
+  volume={12},
+  number={1},
+  pages={58},
+  abstract={Microbiota are closely associated with human health and disease. Metaproteomics can provide a direct means to identify microbial proteins in microbiota for compositional and functional characterization. However, in-depth and accurate metaproteomics is still limited due to the extreme complexity and high diversity of microbiota samples. It is generally recommended to use metagenomic data from the same samples to construct the protein sequence database for metaproteomic data analysis. Although different metagenomics-based database construction strategies have been developed, an optimization of gene taxonomic annotation has not been reported, which, however, is extremely important for accurate metaproteomic analysis.},
+  issn={2049-2618},
+  doi={10.1186/s40168-024-01775-3},
+  url={https://doi.org/10.1186/s40168-024-01775-3}
 }
 ```
 **NOTE:** The database created by ConDiGA is described as MD3 in the manuscript.
