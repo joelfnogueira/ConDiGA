@@ -6,8 +6,9 @@
 
 [![DOI](https://img.shields.io/badge/DOI-10.1186/s40168--024--01775--3-blue)](https://doi.org/10.1186/s40168-024-01775-3)
 ![GitHub](https://img.shields.io/github/license/metagentools/ConDiGA)
-[![Anaconda-Server Badge](https://anaconda.org/bioconda/condiga/badges/version.svg)](https://anaconda.org/bioconda/condiga)
-[![Bioconda Downloads](https://img.shields.io/conda/dn/bioconda/condiga)](https://img.shields.io/conda/dn/bioconda/condiga)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/condiga/README.html)
+[![Conda](https://img.shields.io/conda/v/bioconda/condiga)](https://anaconda.org/bioconda/condiga)
+[![Bioconda Downloads](https://img.shields.io/conda/dn/bioconda/condiga)](https://anaconda.org/bioconda/condiga)
 [![PyPI version](https://badge.fury.io/py/condiga.svg)](https://badge.fury.io/py/condiga)
 [![Downloads](https://static.pepy.tech/badge/condiga)](https://pepy.tech/project/condiga)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
