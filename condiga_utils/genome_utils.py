@@ -8,267 +8,105 @@ import subprocess
 import sys
 from datetime import datetime
 
-# create logger
+# Configurar logger
 logger = logging.getLogger("condiga 0.2.2")
+logging.basicConfig(level=logging.INFO)
 
+def create_directory(path, clear=False):
+    if clear and os.path.exists(path):
+        shutil.rmtree(path)
+    os.makedirs(path, exist_ok=True)
+
+def run_command(command):
+    try:
+        subprocess.run(command, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Erro ao executar comando: {command}\n{e}")
 
 def download_genomes(taxid_list, assembly_summary, output):
-    if not os.path.isdir(f"{output}/Assemblies/"):
-        subprocess.run(f"mkdir -p {output}/Assemblies/", shell=True)
-    else:
-        subprocess.run(f"rm -rf {output}/Assemblies/", shell=True)
-        subprocess.run(f"mkdir -p {output}/Assemblies/", shell=True)
-
-    taxid_dates = {}
-    taxid_urls = {}
-    taxid_file_path = {}
-    taxid_assembly_level = {}
-    taxid_present = {}
-
-    for taxid in taxid_list:
-        taxid_urls[taxid] = ""
-        taxid_file_path[taxid] = ""
-        taxid_present[taxid] = False
-
+    create_directory(f"{output}/Assemblies", clear=True)
+    
+    taxid_data = {taxid: {"url": "", "file_path": "", "present": False} for taxid in taxid_list}
+    
     with open(assembly_summary) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter="\t")
-        line_count = 0
-
+        
         for row in csv_reader:
-            if not row[0].startswith("#"):
-                if row[5] in taxid_list:
-                    name = row[0]
-                    taxid = row[5]
-                    version_status = row[10]
-                    assembly_level = row[11]
-                    genome_rep = row[13]
-                    rel_date = row[14].split("/")
-                    url = row[19]
-
+            if row and not row[0].startswith("#") and row[5] in taxid_list:
+                taxid, version_status, assembly_level, genome_rep, rel_date, url = row[5], row[10], row[11], row[13], row[14].split("/"), row[19]
+                
+                if version_status == "latest" and genome_rep == "Full" and assembly_level in ["Complete Genome", "Contig", "Chromosome"]:
                     myurl = f"{url}/{url.split('/')[-1]}_genomic.fna.gz"
+                    local_file = os.path.join(output, "Assemblies", f"{url.split('/')[-1]}_genomic.fna.gz")
+                    myfile_name = local_file.replace(".gz", "")
+                    
+                    command = ""
+                    if myurl.startswith("https:"):
+                        command = f"rsync -P --copy-links --times --verbose {myurl.replace('https:', 'rsync:')} {output}/Assemblies/"
+                    elif myurl.startswith("ftp:"):
+                        command = f"rsync -P --copy-links --times --verbose {myurl.replace('ftp:', 'rsync:')} {output}/Assemblies/"
+                    
+                    if command:
+                        run_command(command)
+                    
+                    if os.path.exists(local_file):
+                        try:
+                            with gzip.open(local_file, "rb") as f_in, open(myfile_name, "wb") as f_out:
+                                shutil.copyfileobj(f_in, f_out)
+                            os.remove(local_file)
+                            taxid_data[taxid].update({"url": url, "file_path": myfile_name, "present": True})
+                        except Exception as e:
+                            logger.error(f"Erro ao descompactar {local_file}: {e}")
+                            os.remove(local_file)
+    
+    return taxid_data
 
-                    local_file = f"{url.split('/')[-1]}_genomic.fna.gz"
-
-                    myfile_name = (
-                        f"{output}/Assemblies/{url.split('/')[-1]}_genomic.fna"
-                    )
-
-                    if version_status == "latest" and genome_rep == "Full":
-                        if taxid not in taxid_dates:
-                            if assembly_level in [
-                                "Complete Genome",
-                                "Contig",
-                                "Chromosome",
-                            ]:
-                                logger.info(f"Downloading from {myurl}")
-
-                                command = ""
-
-                                if myurl.startswith("https:"):
-                                    command = f"rsync -P --copy-links --times --verbose {myurl.replace('https:', 'rsync:')} {output}/Assemblies/"
-                                elif myurl.startswith("ftp:"):
-                                    command = f"rsync -P --copy-links --times --verbose {myurl.replace('ftp:', 'rsync:')} {output}/Assemblies/"
-
-                                if command != "":
-                                    subprocess.run(command, shell=True)
-
-                                if os.path.exists(f"{output}/Assemblies/{local_file}"):
-                                    try:
-                                        with gzip.open(
-                                            f"{output}/Assemblies/{local_file}", "rb"
-                                        ) as f_in:
-                                            with open(myfile_name, "wb") as f_out:
-                                                shutil.copyfileobj(f_in, f_out)
-
-                                        subprocess.run(
-                                            f"rm -f {output}/Assemblies/{local_file}",
-                                            shell=True,
-                                        )
-
-                                        taxid_dates[taxid] = rel_date
-                                        taxid_urls[taxid] = url
-                                        taxid_file_path[taxid] = myfile_name
-                                        taxid_assembly_level[taxid] = assembly_level
-                                        taxid_present[taxid] = True
-
-                                    except:
-                                        if os.path.exists(
-                                            f"{output}/Assemblies/{local_file}"
-                                        ):
-                                            subprocess.run(
-                                                f"rm -f {output}/Assemblies/{local_file}",
-                                                shell=True,
-                                            )
-
-                        else:
-                            present = datetime.now()
-
-                            old_diff = present - datetime(
-                                int(taxid_dates[taxid][0]),
-                                int(taxid_dates[taxid][1]),
-                                int(taxid_dates[taxid][2]),
-                            )
-                            new_diff = present - datetime(
-                                int(rel_date[0]), int(rel_date[1]), int(rel_date[2])
-                            )
-
-                            if old_diff > new_diff:
-                                if not (
-                                    (
-                                        assembly_level != "Complete Genome"
-                                        and taxid_assembly_level[taxid]
-                                        == "Complete Genome"
-                                    )
-                                    or (
-                                        assembly_level == "Contig"
-                                        and taxid_assembly_level[taxid] == "Chromosome"
-                                    )
-                                ):
-                                    if not os.path.exists(
-                                        f"{output}/Assemblies/{local_file}"
-                                    ):
-                                        logger.info(f"Downloading from {myurl}")
-
-                                        command = ""
-
-                                        if myurl.startswith("https:"):
-                                            command = f"rsync -P --copy-links --times --verbose {myurl.replace('https:', 'rsync:')} {output}/Assemblies/"
-                                        elif myurl.startswith("ftp:"):
-                                            command = f"rsync -P --copy-links --times --verbose {myurl.replace('ftp:', 'rsync:')} {output}/Assemblies/"
-
-                                        if command != "":
-                                            subprocess.run(command, shell=True)
-
-                                        if os.path.exists(
-                                            f"{output}/Assemblies/{local_file}"
-                                        ):
-                                            try:
-                                                with gzip.open(
-                                                    f"{output}/Assemblies/{local_file}",
-                                                    "rb",
-                                                ) as f_in:
-                                                    with open(
-                                                        myfile_name, "wb"
-                                                    ) as f_out:
-                                                        shutil.copyfileobj(f_in, f_out)
-
-                                                if taxid_file_path[taxid] != "":
-                                                    if os.path.exists(
-                                                        taxid_file_path[taxid]
-                                                    ):
-                                                        subprocess.run(
-                                                            f"rm -f {taxid_file_path[taxid]}",
-                                                            shell=True,
-                                                        )
-
-                                                subprocess.run(
-                                                    f"rm -f {output}/Assemblies/{local_file}",
-                                                    shell=True,
-                                                )
-
-                                                taxid_dates[taxid] = rel_date
-                                                taxid_urls[taxid] = url
-                                                taxid_file_path[taxid] = myfile_name
-                                                taxid_assembly_level[
-                                                    taxid
-                                                ] = assembly_level
-                                                taxid_present[taxid] = True
-
-                                            except:
-                                                if os.path.exists(
-                                                    f"{output}/Assemblies/{local_file}"
-                                                ):
-                                                    subprocess.run(
-                                                        f"rm -f {output}/Assemblies/{local_file}",
-                                                        shell=True,
-                                                    )
-
-    return taxid_dates, taxid_urls, taxid_file_path, taxid_assembly_level, taxid_present
-
-
-def get_ref_lengths(taxid_present, taxid_file_path):
+def get_ref_lengths(taxid_data):
     taxid_file_len = {}
-
-    for taxid in taxid_present:
-        command = (
-            'grep -v ">" ' + taxid_file_path[taxid] + " | wc | awk '{print $3-$1}'"
-        )
-        n = subprocess.check_output(command, shell=True)
-
-        taxid_file_len[taxid] = int(n.decode("utf-8").strip())
-
+    
+    for taxid, info in taxid_data.items():
+        if info["present"]:
+            command = f"grep -v '>' {info['file_path']} | wc | awk '{{print $3-$1}}'"
+            try:
+                output = subprocess.check_output(command, shell=True).decode("utf-8").strip()
+                taxid_file_len[taxid] = int(output)
+            except Exception as e:
+                logger.error(f"Erro ao obter comprimento de referência para {taxid}: {e}")
+    
     return taxid_file_len
 
-
-def rename_and_copy_genomes(
-    taxid_file_path,
-    species_names_taxid_length,
-    species_genome_coverages,
-    species_rel_abundance,
-    rel_abundance,
-    genome_coverage,
-    output,
-):
-    if not os.path.isdir(f"{output}/Reference_Sequences/"):
-        subprocess.run(f"mkdir -p {output}/Reference_Sequences/", shell=True)
-    else:
-        subprocess.run(f"rm -rf {output}/Reference_Sequences/", shell=True)
-        subprocess.run(f"mkdir -p {output}/Reference_Sequences/", shell=True)
-
-    n_species = 0
-    n_taxid = 0
-
+def rename_and_copy_genomes(taxid_data, species_data, output, rel_abundance, genome_coverage):
+    create_directory(f"{output}/Reference_Sequences", clear=True)
+    
+    n_species, n_taxid = 0, 0
+    
     with open(f"{output}/species_stats.tsv", "w") as myfile:
-        myfile.write(f"Species name\tRelative abundance\tGenome coverage\n")
-
-        for species in species_rel_abundance:
-            if (
-                species_rel_abundance[species] > rel_abundance
-                and species_genome_coverages[species] > genome_coverage
-            ):
-                myfile.write(
-                    f"{species}\t{species_rel_abundance[species]}\t{species_genome_coverages[species]}\n"
-                )
+        myfile.write("Species name\tRelative abundance\tGenome coverage\n")
+        
+        for species, values in species_data.items():
+            if values["rel_abundance"] > rel_abundance and values["genome_coverage"] > genome_coverage:
+                myfile.write(f"{species}\t{values['rel_abundance']}\t{values['genome_coverage']}\n")
                 n_species += 1
-
-                logger.info(
-                    f"{n_species} {species}: {species_rel_abundance[species]}, {species_genome_coverages[species]}"
-                )
-
-                for taxid in species_names_taxid_length[species]:
-                    n_taxid += 1
-                    subprocess.run(
-                        f"cp {taxid_file_path[taxid]} {output}/Reference_Sequences/{taxid}.fna",
-                        shell=True,
-                    )
-
-    logger.info(f"{n_species} were idenitified with {n_taxid} taxids")
-    logger.info(
-        f"Relative abundance and genome coverage of each species can be found in {output}/species_stats.tsv"
-    )
-
+                
+                for taxid in values["taxids"]:
+                    if taxid in taxid_data and taxid_data[taxid]["present"]:
+                        n_taxid += 1
+                        shutil.copy(taxid_data[taxid]["file_path"], f"{output}/Reference_Sequences/{taxid}.fna")
+    
+    logger.info(f"{n_species} espécies identificadas com {n_taxid} taxids")
 
 def get_ref_ids(output):
     reference_files = glob.glob(f"{output}/Reference_Sequences/*.fna")
-
     ref_ids = {}
-
+    
     for ref in reference_files:
-        ref_name = ref.split("/")[-1][:-4]
-        command = 'grep "^>" ' + ref
-        entries = (
-            subprocess.check_output(command, shell=True)
-            .decode(sys.stdout.encoding)
-            .strip()
-            .split("\n")
-        )
-
-        for item in entries:
-            myid = item.split(" ")[0][1:]
-
-            if ref_name not in ref_ids:
-                ref_ids[ref_name] = [myid]
-            else:
-                ref_ids[ref_name].append(myid)
-
+        ref_name = os.path.basename(ref).replace(".fna", "")
+        command = f"grep '^>' {ref}"
+        
+        try:
+            entries = subprocess.check_output(command, shell=True).decode("utf-8").strip().split("\n")
+            ref_ids[ref_name] = [entry.split(" ")[0][1:] for entry in entries]
+        except Exception as e:
+            logger.error(f"Erro ao obter IDs de referência para {ref}: {e}")
+    
     return ref_ids
